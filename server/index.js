@@ -1,60 +1,41 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 
+// Initialisation de l'application Express
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = socketIo(server);
 
-app.use(express.static("public")); // Servez les fichiers frontend
+// Servir les fichiers statiques (HTML, JS, CSS)
+app.use(express.static('public'));
 
-let clients = [];
-
+// Quand un utilisateur se connecte
 io.on('connection', (socket) => {
-    console.log('Un utilisateur est connecté :', socket.id);
+    console.log('Un utilisateur est connecté', socket.id);
 
-    // Ajouter l'utilisateur à la liste des clients
-    clients.push(socket);
-
-    // Lorsque l'utilisateur envoie une offre
+    // Lorsqu'un utilisateur envoie une offre, la diffuser à tous les autres utilisateurs
     socket.on('offer', (data) => {
-        console.log('Offre reçue de', socket.id);
-        // Émettre l'offre à tous les autres utilisateurs
-        clients.forEach((client) => {
-            if (client.id !== socket.id) {
-                client.emit('offer', data);
-            }
-        });
+        socket.broadcast.emit('offer', data.offer, socket.id);
     });
 
-    // Lorsque l'utilisateur répond à une offre
+    // Lorsqu'un utilisateur envoie une réponse, la diffuser à l'utilisateur cible
     socket.on('answer', (data) => {
-        console.log('Réponse reçue de', socket.id);
-        // Émettre la réponse à l'utilisateur qui a fait l'offre
-        clients.forEach((client) => {
-            if (client.id === data.targetId) {
-                client.emit('answer', data);
-            }
-        });
+        io.to(data.targetId).emit('answer', data.answer);
     });
 
-    // Lorsqu'un utilisateur envoie un candidat ICE
+    // Lorsqu'un utilisateur envoie un candidat ICE, le diffuser à tous les autres
     socket.on('candidate', (data) => {
-        console.log('Candidat ICE reçu de', socket.id);
-        // Émettre le candidat à tous les autres utilisateurs
-        clients.forEach((client) => {
-            if (client.id !== socket.id) {
-                client.emit('candidate', data);
-            }
-        });
+        socket.broadcast.emit('candidate', data.candidate, data.targetId);
     });
 
-    // Lorsque l'utilisateur se déconnecte
+    // Quand un utilisateur se déconnecte
     socket.on('disconnect', () => {
-        console.log('Utilisateur déconnecté :', socket.id);
-        // Retirer l'utilisateur de la liste
-        clients = clients.filter(client => client.id !== socket.id);
+        console.log('Un utilisateur est déconnecté', socket.id);
     });
 });
 
-server.listen(3000, () => console.log("Serveur en écoute sur http://localhost:3000"));
+// Démarre le serveur
+server.listen(3000, () => {
+    console.log('Serveur démarré sur http://localhost:3000');
+});

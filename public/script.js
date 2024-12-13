@@ -24,8 +24,8 @@ async function startCall() {
         // Associer le flux vidéo local à l'élément vidéo
         localVideo.srcObject = localStream;
 
-        // Pour chaque utilisateur distant qui se connecte, créer une connexion WebRTC
-        socket.emit("new-user", socket.id); // Signale le serveur qu'un nouvel utilisateur est connecté
+        // Signaler au serveur qu'un utilisateur se connecte
+        socket.emit("new-user", socket.id);
 
     } catch (error) {
         console.error("Erreur lors de la capture du média ou de la configuration WebRTC :", error);
@@ -92,7 +92,6 @@ socket.on("candidate", async ({ candidate, targetId }) => {
 
 // Quand un nouvel utilisateur se connecte, on crée une connexion WebRTC pour lui
 socket.on("new-user", async (targetId) => {
-    // Créer une connexion avec ce nouvel utilisateur
     const peerConnection = await createPeerConnection(targetId);
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
