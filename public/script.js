@@ -3,15 +3,14 @@ const localVideo = document.getElementById("localVideo");
 const remoteVideosContainer = document.getElementById("remoteVideosContainer");
 
 let localStream;
-let peerConnections = {};  // Dictionnaire pour stocker les connexions des autres utilisateurs
+let peerConnections = {};  // Utilisation d'un dictionnaire pour stocker les connexions par utilisateur
 const config = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
 };
 
-// Démarrage de l'appel
 async function startCall() {
     try {
-        // Vérifiez la compatibilité du navigateur
+        // Vérification de la compatibilité du navigateur
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             alert("Votre navigateur ne supporte pas WebRTC.");
             return;
@@ -21,8 +20,7 @@ async function startCall() {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localVideo.srcObject = localStream;
 
-        socket.emit('new-user', socket.id);
-
+        socket.emit('new-user', socket.id);  // Informer les autres utilisateurs de la connexion du nouvel utilisateur
     } catch (error) {
         console.error('Erreur de capture du média ou de WebRTC', error);
         alert('Erreur: ' + error.message);
@@ -68,7 +66,7 @@ socket.on('new-user', async (targetId) => {
     await peerConnection.setLocalDescription(offer);
 
     socket.emit('offer', { offer, targetId });
-    peerConnections[targetId] = peerConnection;
+    peerConnections[targetId] = peerConnection;  // Stocker la connexion pour ce utilisateur
 });
 
 // Réception de l'offre d'un autre utilisateur
@@ -80,19 +78,27 @@ socket.on('offer', async (offer, targetId) => {
     await peerConnection.setLocalDescription(answer);
 
     socket.emit('answer', { answer, targetId });
-    peerConnections[targetId] = peerConnection;
+    peerConnections[targetId] = peerConnection;  // Stocker la connexion pour ce utilisateur
 });
 
 // Réception de la réponse à l'offre
 socket.on('answer', async ({ answer, targetId }) => {
     const peerConnection = peerConnections[targetId];
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    if (peerConnection) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    } else {
+        console.error(`Peer connection pour ${targetId} non trouvé`);
+    }
 });
 
 // Réception des candidats ICE
 socket.on('candidate', async ({ candidate, targetId }) => {
     const peerConnection = peerConnections[targetId];
-    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    if (peerConnection) {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    } else {
+        console.error(`Peer connection pour ${targetId} non trouvé`);
+    }
 });
 
 // Gestion de la déconnexion des utilisateurs
