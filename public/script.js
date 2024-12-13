@@ -3,11 +3,13 @@ const localVideo = document.getElementById("localVideo");
 const remoteVideosContainer = document.getElementById("remoteVideosContainer");
 
 let localStream;
-let peerConnections = {};  // Stockage des connexions pour chaque utilisateur
+let peerConnections = {};  // Pour gérer les connexions WebRTC pour chaque utilisateur
+let userId;  // ID unique pour chaque utilisateur
 const config = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
 };
 
+// Fonction pour démarrer l'appel
 async function startCall() {
     try {
         // Vérification de la compatibilité du navigateur
@@ -28,23 +30,18 @@ async function startCall() {
         // Afficher le flux local dans l'élément vidéo local
         localVideo.srcObject = localStream;
 
-        // Informer le serveur qu'un nouvel utilisateur s'est connecté
+        // Informer le serveur qu'un utilisateur s'est connecté et démarrer l'appel
         socket.emit('new-user', socket.id);
+
     } catch (error) {
         console.error('Erreur de capture du média ou de WebRTC', error);
         alert('Erreur: ' + error.message);
     }
 }
 
-// Fonction pour créer une connexion WebRTC pour un nouvel utilisateur
+// Créer une connexion WebRTC pour un nouvel utilisateur
 async function createPeerConnection(targetId) {
     const peerConnection = new RTCPeerConnection(config);
-
-    // Vérification du flux local
-    if (!localStream) {
-        console.error("Flux local non défini. Impossible de créer la connexion.");
-        return;
-    }
 
     // Ajouter les pistes locales à la connexion
     localStream.getTracks().forEach(track => {
@@ -55,7 +52,6 @@ async function createPeerConnection(targetId) {
     peerConnection.ontrack = (event) => {
         const remoteStream = event.streams[0];
 
-        // Vérification que le flux distant est valide
         if (remoteStream) {
             let remoteVideo = document.getElementById(targetId);
             if (!remoteVideo) {
@@ -66,8 +62,6 @@ async function createPeerConnection(targetId) {
                 remoteVideosContainer.appendChild(remoteVideo);
             }
             remoteVideo.srcObject = remoteStream;
-        } else {
-            console.error("Flux vidéo distant introuvable.");
         }
     };
 
@@ -81,8 +75,9 @@ async function createPeerConnection(targetId) {
     return peerConnection;
 }
 
-// Lorsqu'un utilisateur se connecte, envoyer une offre à l'autre utilisateur
+// Lorsqu'un nouvel utilisateur se connecte, démarrer une connexion
 socket.on('new-user', async (targetId) => {
+    userId = targetId;  // L'utilisateur qui a démarré l'appel
     const peerConnection = await createPeerConnection(targetId);
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
@@ -92,8 +87,8 @@ socket.on('new-user', async (targetId) => {
     peerConnections[targetId] = peerConnection;  // Stocker la connexion pour cet utilisateur
 });
 
-// Lorsqu'une offre est reçue, créer une réponse
-socket.on('offer', async (offer, targetId) => {
+// Lorsqu'une offre est reçue, créer une réponse et la renvoyer
+socket.on('offer', async ({ offer, targetId }) => {
     const peerConnection = await createPeerConnection(targetId);
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
@@ -125,7 +120,7 @@ socket.on('candidate', async ({ candidate, targetId }) => {
     }
 });
 
-// Gestion de la déconnexion des utilisateurs
+// Gérer la déconnexion des utilisateurs (supprimer la vidéo et fermer la connexion)
 socket.on('user-disconnected', (targetId) => {
     const remoteVideo = document.getElementById(targetId);
     if (remoteVideo) {

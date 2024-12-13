@@ -1,42 +1,16 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Vidéo</title>
-    <style>
-        video {
-            width: 300px;
-            height: 200px;
-            margin: 10px;
-            border: 2px solid black;
-        }
-
-        #localVideo {
-            width: 300px;
-            height: 200px;
-            border: 2px solid black;
-        }
-
-        #remoteVideosContainer {
-            display: flex;
-            flex-wrap: wrap;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <h1>Chat Vidéo</h1>
-
-    <!-- Vidéo locale de l'utilisateur -->
-    <div id="localVideoContainer">
-        <video id="localVideo" autoplay playsinline muted></video>
-    </div>
-
-    <!-- Conteneur pour les vidéos distantes -->
-    <div id="remoteVideosContainer"></div>
-
+    <video id="localVideo" autoplay playsinline muted></video>
+    <div id="remoteVideosContainer"></div> <!-- Conteneur pour les vidéos distantes -->
     <button id="startCall">Démarrer l'appel</button>
-
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>
