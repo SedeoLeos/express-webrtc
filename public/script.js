@@ -3,7 +3,7 @@ const localVideo = document.getElementById("localVideo");
 const remoteVideosContainer = document.getElementById("remoteVideosContainer");
 
 let localStream;
-let peerConnections = {};  // Utilisation d'un dictionnaire pour stocker les connexions par utilisateur
+let peerConnections = {};  // Stockage des connexions pour chaque utilisateur
 const config = {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
 };
@@ -19,27 +19,28 @@ async function startCall() {
         // Demander l'accès au micro et à la caméra
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         
-        // S'assurer que le flux local est défini avant de procéder
+        // Vérification que le flux local est bien récupéré
         if (!localStream) {
             alert("Impossible d'obtenir le flux vidéo et audio.");
             return;
         }
 
-        // Afficher le flux local dans la vidéo locale
+        // Afficher le flux local dans l'élément vidéo local
         localVideo.srcObject = localStream;
 
-        socket.emit('new-user', socket.id);  // Informer les autres utilisateurs de la connexion du nouvel utilisateur
+        // Informer le serveur qu'un nouvel utilisateur s'est connecté
+        socket.emit('new-user', socket.id);
     } catch (error) {
         console.error('Erreur de capture du média ou de WebRTC', error);
         alert('Erreur: ' + error.message);
     }
 }
 
-// Création de la connexion WebRTC pour un nouvel utilisateur
+// Fonction pour créer une connexion WebRTC pour un nouvel utilisateur
 async function createPeerConnection(targetId) {
     const peerConnection = new RTCPeerConnection(config);
 
-    // Vérifier que localStream est bien défini
+    // Vérification du flux local
     if (!localStream) {
         console.error("Flux local non défini. Impossible de créer la connexion.");
         return;
@@ -50,20 +51,27 @@ async function createPeerConnection(targetId) {
         peerConnection.addTrack(track, localStream);
     });
 
-    // Lorsqu'un flux distant arrive, afficher la vidéo
+    // Lorsque le flux distant est reçu, l'ajouter à l'élément vidéo
     peerConnection.ontrack = (event) => {
-        let remoteVideo = document.getElementById(targetId);
-        if (!remoteVideo) {
-            remoteVideo = document.createElement('video');
-            remoteVideo.id = targetId;
-            remoteVideo.autoplay = true;
-            remoteVideo.playsinline = true;
-            remoteVideosContainer.appendChild(remoteVideo);
+        const remoteStream = event.streams[0];
+
+        // Vérification que le flux distant est valide
+        if (remoteStream) {
+            let remoteVideo = document.getElementById(targetId);
+            if (!remoteVideo) {
+                remoteVideo = document.createElement('video');
+                remoteVideo.id = targetId;
+                remoteVideo.autoplay = true;
+                remoteVideo.playsinline = true;
+                remoteVideosContainer.appendChild(remoteVideo);
+            }
+            remoteVideo.srcObject = remoteStream;
+        } else {
+            console.error("Flux vidéo distant introuvable.");
         }
-        remoteVideo.srcObject = event.streams[0];
     };
 
-    // Gérer les candidats ICE
+    // Gestion des candidats ICE
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
             socket.emit('candidate', { candidate: event.candidate, targetId });
@@ -73,17 +81,18 @@ async function createPeerConnection(targetId) {
     return peerConnection;
 }
 
-// Lorsqu'un utilisateur se connecte à un autre, créer une offre
+// Lorsqu'un utilisateur se connecte, envoyer une offre à l'autre utilisateur
 socket.on('new-user', async (targetId) => {
     const peerConnection = await createPeerConnection(targetId);
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
 
+    // Envoyer l'offre à l'autre utilisateur
     socket.emit('offer', { offer, targetId });
-    peerConnections[targetId] = peerConnection;  // Stocker la connexion pour ce utilisateur
+    peerConnections[targetId] = peerConnection;  // Stocker la connexion pour cet utilisateur
 });
 
-// Réception de l'offre d'un autre utilisateur
+// Lorsqu'une offre est reçue, créer une réponse
 socket.on('offer', async (offer, targetId) => {
     const peerConnection = await createPeerConnection(targetId);
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -91,11 +100,12 @@ socket.on('offer', async (offer, targetId) => {
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
+    // Envoyer la réponse à l'utilisateur qui a envoyé l'offre
     socket.emit('answer', { answer, targetId });
-    peerConnections[targetId] = peerConnection;  // Stocker la connexion pour ce utilisateur
+    peerConnections[targetId] = peerConnection;  // Stocker la connexion pour cet utilisateur
 });
 
-// Réception de la réponse à l'offre
+// Lorsqu'une réponse est reçue, la définir comme description distante
 socket.on('answer', async ({ answer, targetId }) => {
     const peerConnection = peerConnections[targetId];
     if (peerConnection) {
@@ -105,7 +115,7 @@ socket.on('answer', async ({ answer, targetId }) => {
     }
 });
 
-// Réception des candidats ICE
+// Ajouter un candidat ICE à la connexion WebRTC
 socket.on('candidate', async ({ candidate, targetId }) => {
     const peerConnection = peerConnections[targetId];
     if (peerConnection) {
@@ -129,5 +139,5 @@ socket.on('user-disconnected', (targetId) => {
     }
 });
 
-// Démarrer l'appel quand l'utilisateur clique sur le bouton
+// Démarrer l'appel lorsque l'utilisateur clique sur le bouton
 document.getElementById("startCall").addEventListener("click", startCall);
