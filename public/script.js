@@ -46,6 +46,7 @@ async function createPeerConnection(targetId) {
     peerConnection.ontrack = (event) => {
         let remoteVideo = document.getElementById(targetId);
         if (!remoteVideo) {
+            console.log('new flux')
             remoteVideo = document.createElement("video");
             remoteVideo.id = targetId;
             remoteVideo.autoplay = true;
@@ -53,6 +54,7 @@ async function createPeerConnection(targetId) {
             document.getElementById("remoteVideosContainer").appendChild(remoteVideo);
         }
         remoteVideo.srcObject = event.streams[0];
+        console.log('new flux')
     };
 
     // Gérer les ICE candidates
