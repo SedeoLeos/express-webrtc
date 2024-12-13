@@ -21,3 +21,25 @@ button {
     border: none;
     border-radius: 5px;
 }
+#remoteVideosContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+video {
+    width: 300px;
+    height: 200px;
+    border: 2px solid black;
+}
+
+#localVideo {
+    width: 300px;
+    height: 200px;
+    border: 2px solid black;
+}
+
+button {
+    margin-top: 20px;
+}

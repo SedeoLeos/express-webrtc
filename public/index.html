@@ -5,12 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Vidéo</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Ajouter quelques styles pour que les vidéos s'affichent côte à côte */
+        
+    </style>
 </head>
 <body>
     <h1>Chat Vidéo</h1>
-    <video id="localVideo" autoplay playsinline muted></video>
-    <video id="remoteVideo" autoplay playsinline></video>
+    
+    <!-- Conteneur pour la vidéo locale -->
+    <div id="localVideoContainer">
+        <video id="localVideo" autoplay playsinline muted></video>
+    </div>
+
+    <!-- Conteneur pour les vidéos des utilisateurs distants -->
+    <div id="remoteVideosContainer">
+        <!-- Les vidéos distantes seront ajoutées dynamiquement ici -->
+    </div>
+
     <button id="startCall">Démarrer l'appel</button>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
 </body>
