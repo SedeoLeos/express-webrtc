@@ -2,40 +2,50 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 
-// Initialisation de l'application Express
+// Initialisation du serveur Express
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Servir les fichiers statiques (HTML, JS, CSS)
+// Servir les fichiers statiques (HTML, CSS, JS)
 app.use(express.static('public'));
 
-// Quand un utilisateur se connecte
-io.on('connection', (socket) => {
-    console.log('Un utilisateur est connecté', socket.id);
+// Liste des utilisateurs connectés
+let users = [];
 
-    // Lorsqu'un utilisateur envoie une offre, la diffuser à tous les autres utilisateurs
+io.on('connection', (socket) => {
+    console.log('Un utilisateur s\'est connecté :', socket.id);
+
+    // Ajout de l'utilisateur dans la liste
+    users.push(socket.id);
+
+    // Notifier tous les autres utilisateurs qu'un nouvel utilisateur est connecté
+    socket.broadcast.emit('new-user', socket.id);
+
+    // Quand un utilisateur envoie une offre, l'émettre aux autres utilisateurs
     socket.on('offer', (data) => {
-        socket.broadcast.emit('offer', data.offer, socket.id);
+        socket.broadcast.emit('offer', data.offer, data.targetId);
     });
 
-    // Lorsqu'un utilisateur envoie une réponse, la diffuser à l'utilisateur cible
+    // Quand un utilisateur envoie une réponse, l'envoyer à l'utilisateur cible
     socket.on('answer', (data) => {
         io.to(data.targetId).emit('answer', data.answer);
     });
 
-    // Lorsqu'un utilisateur envoie un candidat ICE, le diffuser à tous les autres
+    // Quand un utilisateur envoie un candidat ICE, l'envoyer aux autres
     socket.on('candidate', (data) => {
         socket.broadcast.emit('candidate', data.candidate, data.targetId);
     });
 
-    // Quand un utilisateur se déconnecte
+    // Quand un utilisateur se déconnecte, on le retire de la liste
     socket.on('disconnect', () => {
-        console.log('Un utilisateur est déconnecté', socket.id);
+        console.log('Un utilisateur s\'est déconnecté :', socket.id);
+        users = users.filter((user) => user !== socket.id);
+        socket.broadcast.emit('user-disconnected', socket.id);
     });
 });
 
-// Démarre le serveur
+// Démarrage du serveur sur le port 3000
 server.listen(3000, () => {
     console.log('Serveur démarré sur http://localhost:3000');
 });

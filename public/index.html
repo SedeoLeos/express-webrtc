@@ -1,23 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Vidéo</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        video {
+            width: 300px;
+            height: 200px;
+            margin: 10px;
+            border: 2px solid black;
+        }
+
+        #localVideo {
+            width: 300px;
+            height: 200px;
+            border: 2px solid black;
+        }
+
+        #remoteVideosContainer {
+            display: flex;
+            flex-wrap: wrap;
+        }
+    </style>
 </head>
 <body>
     <h1>Chat Vidéo</h1>
-    
-    <!-- Conteneur pour la vidéo locale -->
+
+    <!-- Vidéo locale de l'utilisateur -->
     <div id="localVideoContainer">
         <video id="localVideo" autoplay playsinline muted></video>
     </div>
 
-    <!-- Conteneur pour les vidéos des utilisateurs distants -->
-    <div id="remoteVideosContainer">
-        <!-- Les vidéos distantes seront ajoutées dynamiquement ici -->
-    </div>
+    <!-- Conteneur pour les vidéos distantes -->
+    <div id="remoteVideosContainer"></div>
 
     <button id="startCall">Démarrer l'appel</button>
 
