@@ -18,6 +18,14 @@ async function startCall() {
 
         // Demander l'accès au micro et à la caméra
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        
+        // S'assurer que le flux local est défini avant de procéder
+        if (!localStream) {
+            alert("Impossible d'obtenir le flux vidéo et audio.");
+            return;
+        }
+
+        // Afficher le flux local dans la vidéo locale
         localVideo.srcObject = localStream;
 
         socket.emit('new-user', socket.id);  // Informer les autres utilisateurs de la connexion du nouvel utilisateur
@@ -30,6 +38,12 @@ async function startCall() {
 // Création de la connexion WebRTC pour un nouvel utilisateur
 async function createPeerConnection(targetId) {
     const peerConnection = new RTCPeerConnection(config);
+
+    // Vérifier que localStream est bien défini
+    if (!localStream) {
+        console.error("Flux local non défini. Impossible de créer la connexion.");
+        return;
+    }
 
     // Ajouter les pistes locales à la connexion
     localStream.getTracks().forEach(track => {
